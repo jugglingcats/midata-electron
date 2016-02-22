@@ -1,8 +1,11 @@
 //xxx <xreference path="../node_modules/csv-parse/lib/index.js"/>
 
+///<reference path="../node_modules/angular2/typings/browser.d.ts"/>
+
 import {bootstrap} from 'angular2/platform/browser';
 import {Component, Pipe, PipeTransform} from 'angular2/core';
 import {NgFor} from 'angular2/common';
+import {AgGridNg2} from 'ag-grid-ng2/main';
 //import {AlaSQL} from 'alasql/dist/alasql';
 
 @Pipe({name: 'byteFormat'})
@@ -20,10 +23,29 @@ class ByteFormatPipe implements PipeTransform {
 @Component({
     selector: 'app',
     pipes: [ByteFormatPipe],
+    directives: [AgGridNg2],
     template: `
 
-    <h1>Total Items: {{ getData().length }}</h1>
+    <h1>Total Items: {{ data.length }}</h1>
     <h1>Total Size: {{ imageStats().size | byteFormat}}</h1>
+
+    <ag-grid-ng2 #agGrid style="width: 100%; height: 350px;" class="ag-fresh"
+        [gridOptions]="gridOptions"
+        [columnDefs]="columnDefs"
+        [showToolPanel]="showToolPanel"
+        [rowData]="data"
+
+        enableColResize
+        enableSorting
+        enableFilter
+
+        rowHeight="22"
+        rowSelection="multiple"
+
+        (modelUpdated)="onModelUpdated()"
+        (cellClicked)="onCellClicked($event)"
+        (cellDoubleClicked)="onCellDoubleClicked($event)">
+    </ag-grid-ng2>
 
     <div 
       (dragover)="false" 
@@ -48,38 +70,85 @@ class ByteFormatPipe implements PipeTransform {
     </div>
   `
 })
-
 export class App {
-
     images:Array<Object> = [];
     data:Array<Object> = [];
 
+    //columnDefs = [
+    //    {headerName: "Date", field: "0"},
+    //    {headerName: "Type", field: "1"},
+    //    {headerName: "Description", field: "2"},
+    //    {headerName: "Amount", field: "3"}
+    //];
+    columnDefs = [
+        {headerName: "Date", field: "date"},
+        {headerName: "Type", field: "type"},
+        {headerName: "Description", field: "desc"},
+        {headerName: "Amount", field: "amount"}
+    ];
+
+    handleData(output:Array<Object>) {
+        var self = this;
+        //this.data = output;
+
+        var o = Array<Object>();
+
+        output.forEach(function (line:Array<String>) {
+            console.log(line);
+            if (line.length < 4) {
+                return;
+            }
+            var amount = Number(line[3].replace(/[^\-0-9\.]+/g, ""));
+            var item = {
+                date: line[0],
+                type: line[1],
+                desc: line[2],
+                amount: amount
+            };
+            o.push(item);
+        });
+
+        this.data=o;
+    }
+
+    onModelUpdated() {
+    }
+
+    onCellClicked(e) {
+        console.log(e);
+    }
+
+    onCellDoubleClicked(e) {
+
+    }
+
     constructor() {
-        var fs=require("fs");
+        var fs = require("fs");
         //var transform = require('stream-transform');
         //var sql=require("sqlite3");
 
-        var alasql=require("alasql");
+        var alasql = require("alasql");
         alasql("CREATE TABLE line (date string, type string, description string, amount number)");
 
         var file = "midata2438.csv";
-        var input="#"+fs.readFileSync(file);
+        var input = "#" + fs.readFileSync(file);
 
-        var csv=require("csv-parse");
+        var csv = require("csv-parse");
 
-        csv(input, {comment: '#'}, function(err, output) {
-            this.data=output;
-            output.forEach(function(line) {
-                console.log(line);
-                if ( line.length < 4 ) {
-                    return;
-                }
-                var amount = Number(line[3].replace(/[^0-9\.]+/g,""));
-                var cols=`'${line[0]}','${line[1]}','${line[2].replace("'", "\\'")}',${amount}`;
-                alasql("INSERT INTO line VALUES ("+cols+")");
-            });
-        });
+        csv(input, {comment: '#'}, (err, output) => this.handleData(output));
 
+        //csv(input, {comment: '#'}, function(err, output) {
+        //    output.forEach(function(line) {
+        //        console.log(line);
+        //        data.push(line);
+        //        if ( line.length < 4 ) {
+        //            return;
+        //        }
+        //        var amount = Number(line[3].replace(/[^0-9\.]+/g,""));
+        //        var cols=`'${line[0]}','${line[1]}','${line[2].replace("'", "\\'")}',${amount}`;
+        //        //alasql("INSERT INTO line VALUES ("+cols+")");
+        //    });
+        //});
 
         //console.log(AlaSQL);
         //var db = new sqlite3.Database(file);
@@ -102,6 +171,10 @@ export class App {
 
     getData() {
         return this.data;
+    }
+
+    doit() {
+        alert(this.data.length);
     }
 
     imageStats() {
