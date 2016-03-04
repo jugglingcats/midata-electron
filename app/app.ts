@@ -3,7 +3,7 @@
 ///<reference path="../node_modules/angular2/typings/browser.d.ts"/>
 
 import {bootstrap} from 'angular2/platform/browser';
-import {Component, Pipe, PipeTransform} from 'angular2/core';
+import {Component, Pipe, PipeTransform, ContentChild, ViewChild} from 'angular2/core';
 import {NgFor} from 'angular2/common';
 import {AgGridNg2} from 'ag-grid-ng2/main';
 //import {AlaSQL} from 'alasql/dist/alasql';
@@ -29,6 +29,10 @@ class ByteFormatPipe implements PipeTransform {
     <h1>Total Items: {{ data.length }}</h1>
     <h1>Total Size: {{ imageStats().size | byteFormat}}</h1>
 
+    <select [(ngModel)]="selCategory" (change)="onCategoryChanged($event)">
+        <option *ngFor="#c of categories" [value]="c">{{c}}</option>
+    </select>
+
     <ag-grid-ng2 #agGrid style="width: 100%; height: 350px;" class="ag-fresh"
         [gridOptions]="gridOptions"
         [columnDefs]="columnDefs"
@@ -44,16 +48,17 @@ class ByteFormatPipe implements PipeTransform {
 
         (modelUpdated)="onModelUpdated()"
         (cellClicked)="onCellClicked($event)"
-        (cellDoubleClicked)="onCellDoubleClicked($event)">
+        (cellDoubleClicked)="onCellDoubleClicked($event)"
+        (selectionChanged)="onSelectionChanged($event)">
     </ag-grid-ng2>
 
     <div 
       (dragover)="false" 
       (dragend)="false" 
       (drop)="handleDrop($event)"
-      style="height: 300px; border: 5px dotted #ccc;">
+      style="height: 50px; border: 5px dotted #ccc;">
       <p style="margin: 10px; text-align: center">
-        <strong>Drop Your Images Here</strong>
+        <strong>Drop MiData File Here</strong>
       </p>
     </div>
 
@@ -71,6 +76,9 @@ class ByteFormatPipe implements PipeTransform {
   `
 })
 export class App {
+    @ViewChild(AgGridNg2) agGrid;
+    //agGrid;
+
     images:Array<Object> = [];
     data:Array<Object> = [];
 
@@ -87,6 +95,23 @@ export class App {
         {headerName: "Amount", field: "amount"}
     ];
 
+    categories=[
+        'Cash',
+        'Food',
+        'Petrol',
+        'Travel',
+        'Entertainment'
+    ];
+
+    selCategory;
+
+    onSelectionChanged(e) {
+        console.log(e);
+    }
+    onCategoryChanged(e) {
+        console.log(e.srcElement.value, this.agGrid);
+    }
+
     handleData(output:Array<Object>) {
         var self = this;
         //this.data = output;
@@ -94,7 +119,7 @@ export class App {
         var o = Array<Object>();
 
         output.forEach(function (line:Array<String>) {
-            console.log(line);
+            //console.log(line);
             if (line.length < 4) {
                 return;
             }
